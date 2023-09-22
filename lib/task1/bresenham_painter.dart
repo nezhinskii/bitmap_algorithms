@@ -1,13 +1,18 @@
-import 'dart:ui';
+import 'dart:ui' as ui;
 
-import 'package:bitmap_algorithms/our_painter.dart';
+import 'package:bitmap_algorithms/canvas_history_manager.dart';
 import 'package:bitmap_algorithms/gesture_event.dart';
+import 'package:flutter/rendering.dart';
 
-class BresenhamPainter extends OurPainter{
-  const BresenhamPainter({
-    required super.gestureEvents,
-    required super.clearFlag,
-    super.image,
+class BresenhamPainter extends CustomPainter with CanvasHistoryManager {
+  final List<GestureEvent> gestureEvents;
+  final ui.Image? image;
+  final bool clearFlag;
+
+  BresenhamPainter({
+    required this.gestureEvents,
+    required this.clearFlag,
+    this.image
   });
 
   List<Offset> _bresenhamLine(Offset start, Offset end){
@@ -58,11 +63,11 @@ class BresenhamPainter extends OurPainter{
 
   @override
   void paint(Canvas canvas, Size size) async {
-    super.paint(canvas, size);
+    drawHistory(canvas, image, clearFlag);
     if (gestureEvents.length > 1 && gestureEvents.last.type == GestureEventType.panUpdate){
       final points = _bresenhamLine(gestureEvents[gestureEvents.length - 2].position, gestureEvents.last.position);
       canvas.drawPoints(
-        PointMode.points,
+        ui.PointMode.points,
         points,
         gestureEvents.last.style
       );
