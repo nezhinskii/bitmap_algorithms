@@ -1,7 +1,7 @@
 import 'package:bitmap_algorithms/bloc/main_bloc.dart';
 import 'package:bitmap_algorithms/gesture_event.dart';
-import 'package:bitmap_algorithms/task1/bresenham_painter.dart';
-import 'package:bitmap_algorithms/task1/wu_painter.dart';
+import 'package:bitmap_algorithms/task2/bresenham_painter.dart';
+import 'package:bitmap_algorithms/task2/wu_painter.dart';
 import 'package:bitmap_algorithms/toolbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
