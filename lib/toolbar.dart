@@ -16,8 +16,7 @@ class ToolBar extends StatelessWidget {
               color: Theme.of(context).primaryColor,
               width: 3,
             ),
-          )
-      ),
+          )),
       height: double.infinity,
       width: 220,
       child: Material(
@@ -35,13 +34,15 @@ class ToolBar extends StatelessWidget {
               },
               enableTonalPalette: false,
               enableShadesSelection: false,
-              onColorChanged: (_) {} ,
+              onColorChanged: (_) {},
               onColorChangeEnd: (color) {
                 context.read<MainBloc>().style.color = color;
               },
             ),
             const _WidthPicker(),
-            const SizedBox(height: 20,),
+            const SizedBox(
+              height: 20,
+            ),
             BlocBuilder<MainBloc, MainState>(
               builder: (context, state) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,17 +61,25 @@ class ToolBar extends StatelessWidget {
                     title: "Алгоритм Ву",
                     isActive: state is WuState,
                   ),
+                  _PainterButton(
+                    onPressed: () {
+                      context.read<MainBloc>().add(const MainPickFloodFill());
+                    },
+                    title: "Заливка",
+                    isActive: state is FloodFillState,
+                  ),
                 ],
               ),
             ),
             const Spacer(),
             ElevatedButton(
-                onPressed: (){
+                onPressed: () {
                   context.read<MainBloc>().add(const MainClearEvent());
                 },
-                child: const Text("Очистить")
+                child: const Text("Очистить")),
+            const SizedBox(
+              height: 20,
             ),
-            const SizedBox(height: 20,),
           ],
         ),
       ),
@@ -79,12 +88,12 @@ class ToolBar extends StatelessWidget {
 }
 
 class _PainterButton extends StatelessWidget {
-  const _PainterButton({
-    Key? key,
-    required this.isActive,
-    required this.title,
-    required this.onPressed
-  }) : super(key: key);
+  const _PainterButton(
+      {Key? key,
+      required this.isActive,
+      required this.title,
+      required this.onPressed})
+      : super(key: key);
   final bool isActive;
   final String title;
   final void Function() onPressed;
@@ -96,15 +105,17 @@ class _PainterButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: isActive ? Theme.of(context).primaryColor:Theme.of(context).colorScheme.surface,
-          foregroundColor: isActive ? Theme.of(context).colorScheme.surface:Theme.of(context).primaryColor
-        ),
+            backgroundColor: isActive
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).colorScheme.surface,
+            foregroundColor: isActive
+                ? Theme.of(context).colorScheme.surface
+                : Theme.of(context).primaryColor),
         child: Text(title),
       ),
     );
   }
 }
-
 
 class _WidthPicker extends StatefulWidget {
   const _WidthPicker({
