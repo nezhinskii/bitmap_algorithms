@@ -11,11 +11,12 @@ class FloodFillPainter extends CustomPainter with CanvasHistoryManager {
   final ByteData? byteData;
   final bool clearFlag;
 
-  FloodFillPainter(
-      {required this.gestureEvents,
-      required this.clearFlag,
-      this.byteData,
-      this.image});
+  FloodFillPainter({
+    required this.gestureEvents,
+    required this.clearFlag,
+    this.byteData,
+    this.image,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -27,75 +28,96 @@ class FloodFillPainter extends CustomPainter with CanvasHistoryManager {
 
     final int width = image!.width;
     final int height = image!.height;
-
-    final List<Offset> points = [];
-
-    void floodFill(int x, int y, Color targetColor) {
-      if (x < 0 || x >= width || y < 0 || y >= height) {
-        return;
-      }
-
-      final int currentPixelOffset = (y * width + x) * 4;
-      final Color currentPixelColor = Color.fromRGBO(
-        byteData!.getUint8(currentPixelOffset),
-        byteData!.getUint8(currentPixelOffset + 1),
-        byteData!.getUint8(currentPixelOffset + 2),
-        byteData!.getUint8(currentPixelOffset + 3) / 255.0,
-      );
-
-      if (currentPixelColor != targetColor) {
-        return;
-      }
-
-      int left = x;
-      int right = x;
-
-      // Находим левую границу
-      while (left >= 0 &&
-          Color.fromRGBO(
-                  byteData!.getUint8((y * width + left) * 4),
-                  byteData!.getUint8((y * width + left) * 4 + 1),
-                  byteData!.getUint8((y * width + left) * 4 + 2),
-                  byteData!.getUint8((y * width + left) * 4 + 3) / 255.0) ==
-              targetColor) {
-        left--;
-      }
-
-      // Находим правую границу
-      while (right < width &&
-          Color.fromRGBO(
-                  byteData!.getUint8((y * width + right) * 4),
-                  byteData!.getUint8((y * width + right) * 4 + 1),
-                  byteData!.getUint8((y * width + right) * 4 + 2),
-                  byteData!.getUint8((y * width + right) * 4 + 3) / 255.0) ==
-              targetColor) {
-        right++;
-      }
-
-      // Рисуем линию между левой и правой границами
-      for (int i = left + 1; i < right; i++) {
-        points.add(Offset(i.toDouble(), y.toDouble()));
-      }
-
-      // Рекурсивно обрабатываем верхнюю и нижнюю строки
-      for (int i = left + 1; i < right; i++) {
-        floodFill(i, y - 1, targetColor); // Верхняя строка
-        floodFill(i, y + 1, targetColor); // Нижняя строка
-      }
-    }
+    Uint8List uint8List = byteData!.buffer.asUint8List();
 
     final int targetPixelX = gestureEvents.last.position.dx.toInt();
     final int targetPixelY = gestureEvents.last.position.dy.toInt();
 
+    final int targetPixelOffset = (targetPixelY * width + targetPixelX) * 4;
+
     final Color targetColor = Color.fromRGBO(
-      byteData!.getUint8((targetPixelY * width + targetPixelX) * 4),
-      byteData!.getUint8((targetPixelY * width + targetPixelX) * 4 + 1),
-      byteData!.getUint8((targetPixelY * width + targetPixelX) * 4 + 2),
-      byteData!.getUint8((targetPixelY * width + targetPixelX) * 4 + 3) / 255.0,
+      uint8List[targetPixelOffset],
+      uint8List[targetPixelOffset + 1],
+      uint8List[targetPixelOffset + 2],
+      uint8List[targetPixelOffset + 3] / 255.0,
     );
 
-    floodFill(targetPixelX, targetPixelY, targetColor);
+    final List<Offset> points = [];
+    final List<List<bool>> visited = List.generate(
+      width,
+      (i) => List<bool>.filled(height, false),
+    );
 
-    canvas.drawPoints(ui.PointMode.points, points, gestureEvents.last.style);
+    final List<List<int>> stack = [];
+
+    stack.add([targetPixelX, targetPixelY]);
+
+    while (stack.isNotEmpty) {
+      final currentPoint = stack.removeLast();
+      final x = currentPoint[0];
+      final y = currentPoint[1];
+
+      if (x >= 0 && x < width && y >= 0 && y < height && !visited[x][y]) {
+        visited[x][y] = true;
+
+        final int currentPixelOffset = (y * width + x) * 4;
+        final Color currentPixelColor = Color.fromRGBO(
+          uint8List[currentPixelOffset],
+          uint8List[currentPixelOffset + 1],
+          uint8List[currentPixelOffset + 2],
+          uint8List[currentPixelOffset + 3] / 255.0,
+        );
+
+        if (currentPixelColor == targetColor) {
+          int left = x;
+          int right = x;
+
+          while (left >= 0 &&
+              Color.fromRGBO(
+                      uint8List[(y * width + left) * 4],
+                      uint8List[(y * width + left) * 4 + 1],
+                      uint8List[(y * width + left) * 4 + 2],
+                      uint8List[(y * width + left) * 4 + 3] / 255.0) ==
+                  targetColor) {
+            left--;
+          }
+
+          while (right < width &&
+              Color.fromRGBO(
+                      uint8List[(y * width + right) * 4],
+                      uint8List[(y * width + right) * 4 + 1],
+                      uint8List[(y * width + right) * 4 + 2],
+                      uint8List[(y * width + right) * 4 + 3] / 255.0) ==
+                  targetColor) {
+            right++;
+          }
+
+          for (int i = left + 1; i < right; i++) {
+            visited[i][y] = true;
+            var color = gestureEvents.last.style.color;
+            var offset = (y * width + i) * 4;
+            uint8List[offset] = color.red;
+            uint8List[offset + 1] = color.green;
+            uint8List[offset + 2] = color.blue;
+            uint8List[offset + 3] = color.alpha;
+            //points.add(Offset(i.toDouble(), y.toDouble()));
+
+            if (y > 0) {
+              stack.add([i, y - 1]);
+            }
+            if (y < height - 1) {
+              stack.add([i, y + 1]);
+            }
+          }
+        }
+      }
+    }
+    ui.Image? img;
+    ui.decodeImageFromList(uint8List, (result) {
+      img = result.clone();
+    });
+
+    //canvas.drawImage(img!, Offset.zero, Paint());
+    //canvas.drawPoints(ui.PointMode.points, points, gestureEvents.last.style);
   }
 }
