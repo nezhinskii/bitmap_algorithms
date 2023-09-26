@@ -87,7 +87,6 @@ class MyApp extends StatelessWidget {
                                 FloodFillState() => FloodFillPainter(
                                     gestureEvents: state.gestureEvents,
                                     image: state.canvasHistory,
-                                    byteData: state.byteData,
                                     clearFlag: state.clearFlag),
                               },
                               child: Container(

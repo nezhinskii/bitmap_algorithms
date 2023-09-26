@@ -45,21 +45,17 @@ class WuState extends MainState {
 }
 
 class FloodFillState extends MainState {
-  const FloodFillState(super.gestureEvents, super.canvasHistory, this.byteData,
+  const FloodFillState(super.gestureEvents, super.canvasHistory,
       [super.clearFlag]);
-
-  final ByteData? byteData;
 
   @override
   FloodFillState copyWith(
       {List<GestureEvent>? gestureEvents,
       ui.Image? canvasHistory,
-      ByteData? byteData,
       bool? clearFlag}) {
     return FloodFillState(
         gestureEvents ?? this.gestureEvents,
         clearFlag == true ? null : canvasHistory ?? this.canvasHistory,
-        byteData,
         clearFlag ?? this.clearFlag);
   }
 }
