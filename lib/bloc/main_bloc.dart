@@ -370,8 +370,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
           y += directions[direction][1];
         }
       }
-    } while (!visited[x][y] &&
-        (x != targetPixelX || y != targetPixelY || boundaryPoints.length < 8));
+    } while (!visited[x][y]);
 
     for (final offset in boundaryPoints) {
       uint8List[offset] = 0;
