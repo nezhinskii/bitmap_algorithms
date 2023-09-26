@@ -29,12 +29,14 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     ..strokeWidth = 1
     ..color = Colors.black;
 
-  void _floodFill(
-      ui.Image image, ByteData byteData, GestureEvent gestureEvent) {
+  Future<void> _floodFill(ui.Image image, GestureEvent gestureEvent) async {
     final int width = image.width;
     final int height = image.height;
-    // ByteData? byteData = await state.canvasHistory?.toByteData();
-    Uint8List uint8List = byteData!.buffer.asUint8List();
+
+    ByteData? byteData = await state.canvasHistory?.toByteData();
+    if (byteData == null) return;
+
+    Uint8List uint8List = byteData.buffer.asUint8List();
 
     final int targetPixelX = gestureEvent.position.dx.toInt();
     final int targetPixelY = gestureEvent.position.dy.toInt();
@@ -123,6 +125,118 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     });
   }
 
+  Future<void> _imageFill(
+      ui.Image mainImage, ui.Image maskImage, GestureEvent gestureEvent) async {
+    final int mainWidth = mainImage.width;
+    final int mainHeight = mainImage.height;
+
+    final int maskWidth = maskImage.width;
+    final int maskHeight = maskImage.height;
+
+    var mainByteData = await mainImage.toByteData();
+    var maskByteData = await maskImage.toByteData();
+
+    if (mainByteData == null || maskByteData == null) return;
+
+    Uint8List maskPixels = maskByteData.buffer.asUint8List();
+    Uint8List mainPixels = mainByteData.buffer.asUint8List();
+
+    final int targetPixelX = gestureEvent.position.dx.toInt();
+    final int targetPixelY = gestureEvent.position.dy.toInt();
+
+    final int targetPixelOffset = (targetPixelY * mainWidth + targetPixelX) * 4;
+
+    final Color targetColor = Color.fromRGBO(
+      mainPixels[targetPixelOffset],
+      mainPixels[targetPixelOffset + 1],
+      mainPixels[targetPixelOffset + 2],
+      mainPixels[targetPixelOffset + 3] / 255.0,
+    );
+
+    final List<List<bool>> visited = List.generate(
+      mainWidth,
+      (i) => List<bool>.filled(mainHeight, false),
+    );
+
+    final List<List<int>> stack = [];
+
+    stack.add([targetPixelX, targetPixelY]);
+
+    while (stack.isNotEmpty) {
+      final currentPoint = stack.removeLast();
+      final x = currentPoint[0];
+      final y = currentPoint[1];
+
+      if (x >= 0 &&
+          x < mainWidth &&
+          y >= 0 &&
+          y < mainHeight &&
+          !visited[x][y]) {
+        visited[x][y] = true;
+
+        final int currentPixelOffset = (y * mainWidth + x) * 4;
+        final Color currentPixelColor = Color.fromRGBO(
+          mainPixels[currentPixelOffset],
+          mainPixels[currentPixelOffset + 1],
+          mainPixels[currentPixelOffset + 2],
+          mainPixels[currentPixelOffset + 3] / 255.0,
+        );
+
+        if (currentPixelColor == targetColor) {
+          int left = x;
+          int right = x;
+
+          while (left >= 0 &&
+              Color.fromRGBO(
+                      mainPixels[(y * mainWidth + left) * 4],
+                      mainPixels[(y * mainWidth + left) * 4 + 1],
+                      mainPixels[(y * mainWidth + left) * 4 + 2],
+                      mainPixels[(y * mainWidth + left) * 4 + 3] / 255.0) ==
+                  targetColor) {
+            left--;
+          }
+
+          while (right < mainWidth &&
+              Color.fromRGBO(
+                      mainPixels[(y * mainWidth + right) * 4],
+                      mainPixels[(y * mainWidth + right) * 4 + 1],
+                      mainPixels[(y * mainWidth + right) * 4 + 2],
+                      mainPixels[(y * mainWidth + right) * 4 + 3] / 255.0) ==
+                  targetColor) {
+            right++;
+          }
+
+          for (int curX = left + 1; curX < right; curX++) {
+            visited[curX][y] = true;
+
+            var mainOffset = (y * mainWidth + curX) * 4;
+
+            var maskX = (curX % mainWidth - targetPixelX) % maskWidth;
+            var maskY = (y ~/ mainHeight - targetPixelY) % maskHeight;
+
+            var maskOffset = (maskY * maskWidth + maskX) * 4;
+
+            mainPixels[mainOffset] = maskPixels[maskOffset];
+            mainPixels[mainOffset + 1] = maskPixels[maskOffset + 1];
+            mainPixels[mainOffset + 2] = maskPixels[maskOffset + 2];
+            mainPixels[mainOffset + 3] = maskPixels[maskOffset + 3];
+
+            if (y > 0) {
+              stack.add([curX, y - 1]);
+            }
+            if (y < mainHeight - 1) {
+              stack.add([curX, y + 1]);
+            }
+          }
+        }
+      }
+    }
+    ui.decodeImageFromPixels(mainPixels, mainWidth.toInt(), mainHeight.toInt(),
+        ui.PixelFormat.rgba8888, (image) {
+      emit(FloodFillState([], image));
+    });
+  }
+
   void _onGestureUpdate(MainGestureUpdate event, Emitter emit) async {
     final List<GestureEvent> eventList = [];
     final gestureEvent =
@@ -141,10 +255,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       case GestureEventType.panDown:
         eventList.add(gestureEvent);
         if (state is FloodFillState) {
-          bd = await state.canvasHistory?.toByteData();
-          if (bd != null) {
-            _floodFill(state.canvasHistory!, bd, gestureEvent);
-          }
+          await _floodFill(state.canvasHistory!, gestureEvent);
           return;
         }
     }
