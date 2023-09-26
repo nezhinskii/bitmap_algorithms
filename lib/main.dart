@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
         as RenderRepaintBoundary?;
     final updatedHistory = await boundary?.toImage();
     if (updatedHistory != null) {
-      bloc.add(MainImageUpdate(updatedHistory));
+      bloc.add(MainCanvasHistoryUpdate(updatedHistory));
     }
   }
 

@@ -11,13 +11,17 @@ class MainGestureUpdate extends MainEvent {
   const MainGestureUpdate(this.position, this.type);
 }
 
-class MainImageUpdate extends MainEvent {
-  final ui.Image image;
-  const MainImageUpdate(this.image);
+class MainCanvasHistoryUpdate extends MainEvent {
+  final ui.Image canvasHistory;
+  const MainCanvasHistoryUpdate(this.canvasHistory);
 }
 
 class MainClearEvent extends MainEvent {
   const MainClearEvent();
+}
+
+class MainLoadFillImage extends MainEvent {
+  const MainLoadFillImage();
 }
 
 class MainPickBresenham extends MainEvent {

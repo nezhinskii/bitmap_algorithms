@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:bitmap_algorithms/gesture_event.dart';
 import 'package:bloc/bloc.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 part 'main_event.dart';
@@ -11,8 +12,9 @@ part 'main_state.dart';
 class MainBloc extends Bloc<MainEvent, MainState> {
   MainBloc() : super(const BresenhamState([], null)) {
     on<MainGestureUpdate>(_onGestureUpdate);
-    on<MainImageUpdate>(_onImageUpdate);
+    on<MainCanvasHistoryUpdate>(_onCanvasHistoryUpdate);
     on<MainClearEvent>(_clearHistory);
+    on<MainLoadFillImage>(_onLoadFillImage);
     on<MainPickBresenham>((_, Emitter emit) {
       emit(BresenhamState([], state.canvasHistory));
     });
@@ -121,107 +123,6 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     });
   }
 
-  // Future<void> _imageFill(ui.Image mainImage, ui.Image maskImage, ByteData byteData,
-  //     GestureEvent gestureEvent) async {
-  //   final int mainWidth = mainImage.width;
-  //   final int mainHeight = mainImage.height;
-
-  //   final int maskWidth = maskImage.width;
-  //   final int maskHeight = maskImage.height;
-
-  //   var mainByteData = await mainImage.toByteData();
-  //   Uint8List mainPixels = mainByteData!.buffer.asUint8List();
-
-  //   var maskByteData = await maskImage.toByteData();
-  //   Uint8List maskPixels = maskByteData!.buffer.asUint8List();
-
-  //   final int targetPixelX = gestureEvent.position.dx.toInt();
-  //   final int targetPixelY = gestureEvent.position.dy.toInt();
-
-  //   final int targetPixelOffset = (targetPixelY * mainWidth + targetPixelX) * 4;
-
-  //   final Color targetColor = Color.fromRGBO(
-  //     mainPixels[targetPixelOffset],
-  //     mainPixels[targetPixelOffset + 1],
-  //     mainPixels[targetPixelOffset + 2],
-  //     mainPixels[targetPixelOffset + 3] / 255.0,
-  //   );
-
-  //   final List<List<bool>> visited = List.generate(
-  //     mainWidth,
-  //     (i) => List<bool>.filled(mainHeight, false),
-  //   );
-
-  //   final List<List<int>> stack = [];
-
-  //   stack.add([targetPixelX, targetPixelY]);
-
-  //   while (stack.isNotEmpty) {
-  //     final currentPoint = stack.removeLast();
-  //     final x = currentPoint[0];
-  //     final y = currentPoint[1];
-
-  //     if (x >= 0 && x < width && y >= 0 && y < height && !visited[x][y]) {
-  //       visited[x][y] = true;
-
-  //       final int currentPixelOffset = (y * width + x) * 4;
-  //       final Color currentPixelColor = Color.fromRGBO(
-  //         uint8List[currentPixelOffset],
-  //         uint8List[currentPixelOffset + 1],
-  //         uint8List[currentPixelOffset + 2],
-  //         uint8List[currentPixelOffset + 3] / 255.0,
-  //       );
-
-  //       if (currentPixelColor == targetColor) {
-  //         int left = x;
-  //         int right = x;
-
-  //         while (left >= 0 &&
-  //             Color.fromRGBO(
-  //                     uint8List[(y * width + left) * 4],
-  //                     uint8List[(y * width + left) * 4 + 1],
-  //                     uint8List[(y * width + left) * 4 + 2],
-  //                     uint8List[(y * width + left) * 4 + 3] / 255.0) ==
-  //                 targetColor) {
-  //           left--;
-  //         }
-
-  //         while (right < width &&
-  //             Color.fromRGBO(
-  //                     uint8List[(y * width + right) * 4],
-  //                     uint8List[(y * width + right) * 4 + 1],
-  //                     uint8List[(y * width + right) * 4 + 2],
-  //                     uint8List[(y * width + right) * 4 + 3] / 255.0) ==
-  //                 targetColor) {
-  //           right++;
-  //         }
-
-  //         for (int i = left + 1; i < right; i++) {
-  //           visited[i][y] = true;
-  //           var color = gestureEvent.style.color;
-  //           var offset = (y * width + i) * 4;
-  //           uint8List[offset] = color.red;
-  //           uint8List[offset + 1] = color.green;
-  //           uint8List[offset + 2] = color.blue;
-  //           uint8List[offset + 3] = color.alpha;
-
-  //           if (y > 0) {
-  //             stack.add([i, y - 1]);
-  //           }
-  //           if (y < height - 1) {
-  //             stack.add([i, y + 1]);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   ui.decodeImageFromPixels(
-  //       uint8List, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
-  //       (image) {
-  //     emit(FloodFillState([], image));
-  //   });
-  // }
-
   void _onGestureUpdate(MainGestureUpdate event, Emitter emit) async {
     final List<GestureEvent> eventList = [];
     final gestureEvent =
@@ -250,12 +151,22 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     emit(state.copyWith(gestureEvents: eventList));
   }
 
-  void _onImageUpdate(MainImageUpdate event, Emitter emit) {
-    emit(state.copyWith(canvasHistory: event.image, clearFlag: false));
+  void _onCanvasHistoryUpdate(MainCanvasHistoryUpdate event, Emitter emit) {
+    emit(state.copyWith(canvasHistory: event.canvasHistory, clearFlag: false));
   }
 
   void _clearHistory(MainClearEvent event, Emitter emit) {
     emit(state.copyWith(
         canvasHistory: null, gestureEvents: [], clearFlag: true));
+  }
+
+  void _onLoadFillImage(MainLoadFillImage event, Emitter emit) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true,
+      type: FileType.image,
+    );
+    final bytes = result?.files.single.bytes;
+    final fileName = result?.files.single.name;
+
   }
 }
