@@ -43,7 +43,25 @@ class ToolBar extends StatelessWidget {
             const SizedBox(
               height: 20,
             ),
-            const _ImagePicker(),
+            BlocBuilder<MainBloc, MainState>(
+              builder: (context, state) => switch(state){
+                ImageFillState() => Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<MainBloc>().add(const MainLoadFillImage());
+                      },
+                      child: Text("Загрузить изображение")
+                    ),
+                    Text(state.imageName ?? "Изображение не выбрано"),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                  ],
+                ),
+                _ => const SizedBox.shrink(),
+              },
+            ),
             BlocBuilder<MainBloc, MainState>(
               builder: (context, state) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,8 +84,15 @@ class ToolBar extends StatelessWidget {
                     onPressed: () {
                       context.read<MainBloc>().add(const MainPickFloodFill());
                     },
-                    title: "Заливка",
+                    title: "Заливка цветом",
                     isActive: state is FloodFillState,
+                  ),
+                  _PainterButton(
+                    onPressed: () {
+                      context.read<MainBloc>().add(const MainPickImageFill());
+                    },
+                    title: "Заливка изображением",
+                    isActive: state is ImageFillState,
                   ),
                 ],
               ),
@@ -150,25 +175,3 @@ class _WidthPickerState extends State<_WidthPicker> {
   }
 }
 
-class _ImagePicker extends StatelessWidget {
-  const _ImagePicker({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            context.read<MainBloc>().add(const MainLoadFillImage());
-          },
-          child: Text("Загрузить изображение")
-        ),
-        BlocBuilder<MainBloc, MainState>(
-          builder: (context, state) => switch (state) {
-            _ => const SizedBox.shrink()
-          },
-        )
-      ],
-    );
-  }
-}

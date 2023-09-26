@@ -35,3 +35,7 @@ class MainPickWu extends MainEvent {
 class MainPickFloodFill extends MainEvent {
   const MainPickFloodFill();
 }
+
+class MainPickImageFill extends MainEvent {
+  const MainPickImageFill();
+}

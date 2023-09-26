@@ -24,10 +24,68 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     on<MainPickFloodFill>((_, Emitter emit) {
       emit(FloodFillState([], state.canvasHistory));
     });
+    on<MainPickImageFill>((_, Emitter emit) {
+      emit(ImageFillState(null, null, [], state.canvasHistory));
+    });
   }
   final Paint style = Paint()
     ..strokeWidth = 1
     ..color = Colors.black;
+
+  void _onGestureUpdate(MainGestureUpdate event, Emitter emit) async {
+    final List<GestureEvent> eventList = [];
+    final gestureEvent =
+        GestureEvent(type: event.type, position: event.position, style: style);
+
+    ByteData? bd;
+    switch (gestureEvent.type) {
+      case GestureEventType.panUpdate:
+        if (state is BresenhamState || state is WuState) {
+          eventList.addAll([state.gestureEvents.first, gestureEvent]);
+        }
+      case GestureEventType.panEnd:
+        if (state is BresenhamState || state is WuState) {
+          eventList.addAll([state.gestureEvents.first, gestureEvent]);
+        }
+      case GestureEventType.panDown:
+        eventList.add(gestureEvent);
+        if (state is FloodFillState) {
+          await _floodFill(state.canvasHistory!, gestureEvent);
+          return;
+        }
+        if (state is ImageFillState) {
+          final imageFillState = (state as ImageFillState);
+          if (imageFillState.fillImage == null) {
+            return;
+          }
+          await _imageFill(state.canvasHistory!, imageFillState.fillImage!, gestureEvent);
+          return;
+        }
+    }
+    emit(state.copyWith(gestureEvents: eventList));
+  }
+
+  void _onCanvasHistoryUpdate(MainCanvasHistoryUpdate event, Emitter emit) {
+    emit(state.copyWith(canvasHistory: event.canvasHistory, clearFlag: false));
+  }
+
+  void _clearHistory(MainClearEvent event, Emitter emit) {
+    emit(state.copyWith(
+        canvasHistory: null, gestureEvents: [], clearFlag: true));
+  }
+
+  void _onLoadFillImage(MainLoadFillImage event, Emitter emit) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true,
+      type: FileType.image,
+    );
+    final bytes = result?.files.single.bytes;
+    final fileName = result?.files.single.name;
+    if (bytes != null){
+      final image = await decodeImageFromList(bytes);
+      emit(ImageFillState(fileName, image, [], state.canvasHistory));
+    }
+  }
 
   Future<void> _floodFill(ui.Image image, GestureEvent gestureEvent) async {
     final int width = image.width;
@@ -52,7 +110,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
     final List<List<bool>> visited = List.generate(
       width,
-      (i) => List<bool>.filled(height, false),
+          (i) => List<bool>.filled(height, false),
     );
 
     final List<List<int>> stack = [];
@@ -81,20 +139,20 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
           while (left >= 0 &&
               Color.fromRGBO(
-                      uint8List[(y * width + left) * 4],
-                      uint8List[(y * width + left) * 4 + 1],
-                      uint8List[(y * width + left) * 4 + 2],
-                      uint8List[(y * width + left) * 4 + 3] / 255.0) ==
+                  uint8List[(y * width + left) * 4],
+                  uint8List[(y * width + left) * 4 + 1],
+                  uint8List[(y * width + left) * 4 + 2],
+                  uint8List[(y * width + left) * 4 + 3] / 255.0) ==
                   targetColor) {
             left--;
           }
 
           while (right < width &&
               Color.fromRGBO(
-                      uint8List[(y * width + right) * 4],
-                      uint8List[(y * width + right) * 4 + 1],
-                      uint8List[(y * width + right) * 4 + 2],
-                      uint8List[(y * width + right) * 4 + 3] / 255.0) ==
+                  uint8List[(y * width + right) * 4],
+                  uint8List[(y * width + right) * 4 + 1],
+                  uint8List[(y * width + right) * 4 + 2],
+                  uint8List[(y * width + right) * 4 + 3] / 255.0) ==
                   targetColor) {
             right++;
           }
@@ -120,9 +178,9 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     }
     ui.decodeImageFromPixels(
         uint8List, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
-        (image) {
-      emit(FloodFillState([], image));
-    });
+            (image) {
+          emit(FloodFillState([], image));
+        });
   }
 
   Future<void> _imageFill(
@@ -155,7 +213,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
     final List<List<bool>> visited = List.generate(
       mainWidth,
-      (i) => List<bool>.filled(mainHeight, false),
+          (i) => List<bool>.filled(mainHeight, false),
     );
 
     final List<List<int>> stack = [];
@@ -188,20 +246,20 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
           while (left >= 0 &&
               Color.fromRGBO(
-                      mainPixels[(y * mainWidth + left) * 4],
-                      mainPixels[(y * mainWidth + left) * 4 + 1],
-                      mainPixels[(y * mainWidth + left) * 4 + 2],
-                      mainPixels[(y * mainWidth + left) * 4 + 3] / 255.0) ==
+                  mainPixels[(y * mainWidth + left) * 4],
+                  mainPixels[(y * mainWidth + left) * 4 + 1],
+                  mainPixels[(y * mainWidth + left) * 4 + 2],
+                  mainPixels[(y * mainWidth + left) * 4 + 3] / 255.0) ==
                   targetColor) {
             left--;
           }
 
           while (right < mainWidth &&
               Color.fromRGBO(
-                      mainPixels[(y * mainWidth + right) * 4],
-                      mainPixels[(y * mainWidth + right) * 4 + 1],
-                      mainPixels[(y * mainWidth + right) * 4 + 2],
-                      mainPixels[(y * mainWidth + right) * 4 + 3] / 255.0) ==
+                  mainPixels[(y * mainWidth + right) * 4],
+                  mainPixels[(y * mainWidth + right) * 4 + 1],
+                  mainPixels[(y * mainWidth + right) * 4 + 2],
+                  mainPixels[(y * mainWidth + right) * 4 + 3] / 255.0) ==
                   targetColor) {
             right++;
           }
@@ -211,8 +269,8 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
             var mainOffset = (y * mainWidth + curX) * 4;
 
-            var maskX = (curX % mainWidth - targetPixelX) % maskWidth;
-            var maskY = (y ~/ mainHeight - targetPixelY) % maskHeight;
+            var maskX = (curX - targetPixelX) % maskWidth;
+            var maskY = (y - targetPixelY) % maskHeight;
 
             var maskOffset = (maskY * maskWidth + maskX) * 4;
 
@@ -232,52 +290,11 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       }
     }
     ui.decodeImageFromPixels(mainPixels, mainWidth.toInt(), mainHeight.toInt(),
-        ui.PixelFormat.rgba8888, (image) {
-      emit(FloodFillState([], image));
-    });
-  }
-
-  void _onGestureUpdate(MainGestureUpdate event, Emitter emit) async {
-    final List<GestureEvent> eventList = [];
-    final gestureEvent =
-        GestureEvent(type: event.type, position: event.position, style: style);
-
-    ByteData? bd;
-    switch (gestureEvent.type) {
-      case GestureEventType.panUpdate:
-        if (state is BresenhamState || state is WuState) {
-          eventList.addAll([state.gestureEvents.first, gestureEvent]);
-        }
-      case GestureEventType.panEnd:
-        if (state is BresenhamState || state is WuState) {
-          eventList.addAll([state.gestureEvents.first, gestureEvent]);
-        }
-      case GestureEventType.panDown:
-        eventList.add(gestureEvent);
-        if (state is FloodFillState) {
-          await _floodFill(state.canvasHistory!, gestureEvent);
-          return;
-        }
-    }
-    emit(state.copyWith(gestureEvents: eventList));
-  }
-
-  void _onCanvasHistoryUpdate(MainCanvasHistoryUpdate event, Emitter emit) {
-    emit(state.copyWith(canvasHistory: event.canvasHistory, clearFlag: false));
-  }
-
-  void _clearHistory(MainClearEvent event, Emitter emit) {
-    emit(state.copyWith(
-        canvasHistory: null, gestureEvents: [], clearFlag: true));
-  }
-
-  void _onLoadFillImage(MainLoadFillImage event, Emitter emit) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      withData: true,
-      type: FileType.image,
+      ui.PixelFormat.rgba8888, (image) {
+        final fillState = (state as ImageFillState);
+        emit(ImageFillState(fillState.imageName, fillState.fillImage, [], image));
+      }
     );
-    final bytes = result?.files.single.bytes;
-    final fileName = result?.files.single.name;
-
   }
+
 }

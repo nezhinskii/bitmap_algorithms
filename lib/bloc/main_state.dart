@@ -59,3 +59,25 @@ class FloodFillState extends MainState {
         clearFlag ?? this.clearFlag);
   }
 }
+
+class ImageFillState extends MainState {
+  final ui.Image? fillImage;
+  final String? imageName;
+  const ImageFillState(this.imageName, this.fillImage, super.gestureEvents, super.canvasHistory, [super.clearFlag]);
+
+  @override
+  ImageFillState copyWith(
+      {
+        String? imageName,
+        ui.Image? fillImage,
+        List<GestureEvent>? gestureEvents,
+        ui.Image? canvasHistory,
+        bool? clearFlag}) {
+    return ImageFillState(
+      imageName ?? this.imageName,
+      fillImage ?? this.fillImage,
+      gestureEvents ?? this.gestureEvents,
+      clearFlag == true ? null : canvasHistory ?? this.canvasHistory,
+      clearFlag ?? this.clearFlag);
+  }
+}
