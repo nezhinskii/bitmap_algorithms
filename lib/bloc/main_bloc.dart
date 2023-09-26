@@ -210,7 +210,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
             var mainOffset = (y * mainWidth + curX) * 4;
 
             var maskX = (curX % mainWidth - targetPixelX) % maskWidth;
-            var maskY = (y ~/ mainHeight - targetPixelY) ~/ maskHeight;
+            var maskY = (y ~/ mainHeight - targetPixelY) % maskHeight;
 
             var maskOffset = (maskY * maskWidth + maskX) * 4;
 
