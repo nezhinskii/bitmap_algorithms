@@ -27,6 +27,9 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     on<MainPickImageFill>((_, Emitter emit) {
       emit(ImageFillState(null, null, [], state.canvasHistory));
     });
+    on<MainPickFindBoundary>((_, Emitter emit) {
+      emit(FindBoundaryState([], state.canvasHistory));
+    });
   }
   final Paint style = Paint()
     ..strokeWidth = 1
@@ -37,7 +40,6 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     final gestureEvent =
         GestureEvent(type: event.type, position: event.position, style: style);
 
-    ByteData? bd;
     switch (gestureEvent.type) {
       case GestureEventType.panUpdate:
         if (state is BresenhamState || state is WuState) {
@@ -53,12 +55,17 @@ class MainBloc extends Bloc<MainEvent, MainState> {
           await _floodFill(state.canvasHistory!, gestureEvent);
           return;
         }
+        if (state is FindBoundaryState) {
+          await _findBoundary(state.canvasHistory!, gestureEvent);
+          return;
+        }
         if (state is ImageFillState) {
           final imageFillState = (state as ImageFillState);
           if (imageFillState.fillImage == null) {
             return;
           }
-          await _imageFill(state.canvasHistory!, imageFillState.fillImage!, gestureEvent);
+          await _imageFill(
+              state.canvasHistory!, imageFillState.fillImage!, gestureEvent);
           return;
         }
     }
@@ -81,7 +88,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     );
     final bytes = result?.files.single.bytes;
     final fileName = result?.files.single.name;
-    if (bytes != null){
+    if (bytes != null) {
       final image = await decodeImageFromList(bytes);
       emit(ImageFillState(fileName, image, [], state.canvasHistory));
     }
@@ -110,7 +117,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
     final List<List<bool>> visited = List.generate(
       width,
-          (i) => List<bool>.filled(height, false),
+      (i) => List<bool>.filled(height, false),
     );
 
     final List<List<int>> stack = [];
@@ -139,20 +146,20 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
           while (left >= 0 &&
               Color.fromRGBO(
-                  uint8List[(y * width + left) * 4],
-                  uint8List[(y * width + left) * 4 + 1],
-                  uint8List[(y * width + left) * 4 + 2],
-                  uint8List[(y * width + left) * 4 + 3] / 255.0) ==
+                      uint8List[(y * width + left) * 4],
+                      uint8List[(y * width + left) * 4 + 1],
+                      uint8List[(y * width + left) * 4 + 2],
+                      uint8List[(y * width + left) * 4 + 3] / 255.0) ==
                   targetColor) {
             left--;
           }
 
           while (right < width &&
               Color.fromRGBO(
-                  uint8List[(y * width + right) * 4],
-                  uint8List[(y * width + right) * 4 + 1],
-                  uint8List[(y * width + right) * 4 + 2],
-                  uint8List[(y * width + right) * 4 + 3] / 255.0) ==
+                      uint8List[(y * width + right) * 4],
+                      uint8List[(y * width + right) * 4 + 1],
+                      uint8List[(y * width + right) * 4 + 2],
+                      uint8List[(y * width + right) * 4 + 3] / 255.0) ==
                   targetColor) {
             right++;
           }
@@ -178,9 +185,9 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     }
     ui.decodeImageFromPixels(
         uint8List, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
-            (image) {
-          emit(FloodFillState([], image));
-        });
+        (image) {
+      emit(FloodFillState([], image));
+    });
   }
 
   Future<void> _imageFill(
@@ -213,7 +220,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
     final List<List<bool>> visited = List.generate(
       mainWidth,
-          (i) => List<bool>.filled(mainHeight, false),
+      (i) => List<bool>.filled(mainHeight, false),
     );
 
     final List<List<int>> stack = [];
@@ -246,20 +253,20 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
           while (left >= 0 &&
               Color.fromRGBO(
-                  mainPixels[(y * mainWidth + left) * 4],
-                  mainPixels[(y * mainWidth + left) * 4 + 1],
-                  mainPixels[(y * mainWidth + left) * 4 + 2],
-                  mainPixels[(y * mainWidth + left) * 4 + 3] / 255.0) ==
+                      mainPixels[(y * mainWidth + left) * 4],
+                      mainPixels[(y * mainWidth + left) * 4 + 1],
+                      mainPixels[(y * mainWidth + left) * 4 + 2],
+                      mainPixels[(y * mainWidth + left) * 4 + 3] / 255.0) ==
                   targetColor) {
             left--;
           }
 
           while (right < mainWidth &&
               Color.fromRGBO(
-                  mainPixels[(y * mainWidth + right) * 4],
-                  mainPixels[(y * mainWidth + right) * 4 + 1],
-                  mainPixels[(y * mainWidth + right) * 4 + 2],
-                  mainPixels[(y * mainWidth + right) * 4 + 3] / 255.0) ==
+                      mainPixels[(y * mainWidth + right) * 4],
+                      mainPixels[(y * mainWidth + right) * 4 + 1],
+                      mainPixels[(y * mainWidth + right) * 4 + 2],
+                      mainPixels[(y * mainWidth + right) * 4 + 3] / 255.0) ==
                   targetColor) {
             right++;
           }
@@ -290,11 +297,93 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       }
     }
     ui.decodeImageFromPixels(mainPixels, mainWidth.toInt(), mainHeight.toInt(),
-      ui.PixelFormat.rgba8888, (image) {
-        final fillState = (state as ImageFillState);
-        emit(ImageFillState(fillState.imageName, fillState.fillImage, [], image));
-      }
-    );
+        ui.PixelFormat.rgba8888, (image) {
+      final fillState = (state as ImageFillState);
+      emit(ImageFillState(fillState.imageName, fillState.fillImage, [], image));
+    });
   }
 
+  Future<void> _findBoundary(ui.Image image, GestureEvent gestureEvent) async {
+    final int width = image.width;
+    final int height = image.height;
+
+    ByteData? byteData = await image.toByteData();
+    if (byteData == null) return;
+
+    Uint8List uint8List = byteData.buffer.asUint8List();
+
+    List<List<bool>> visited = List.generate(
+      width,
+      (i) => List<bool>.filled(height, false),
+    );
+
+    List<int> boundaryPoints = [];
+
+    final int targetPixelX = gestureEvent.position.dx.toInt();
+    final int targetPixelY = gestureEvent.position.dy.toInt();
+
+    final int targetPixelOffset = (targetPixelY * width + targetPixelX) * 4;
+
+    final Color targetColor = Color.fromRGBO(
+      uint8List[targetPixelOffset],
+      uint8List[targetPixelOffset + 1],
+      uint8List[targetPixelOffset + 2],
+      uint8List[targetPixelOffset + 3] / 255.0,
+    );
+
+    int x = targetPixelX;
+    int y = targetPixelY;
+    int direction = 0; // Начинаем движение вправо
+
+    final List<List<int>> directions = [
+      [1, 0], // Вправо
+      [1, 1], // Вправо-вниз
+      [0, 1], // Вниз
+      [-1, 1], // Влево-вниз
+      [-1, 0], // Влево
+      [-1, -1], // Влево-вверх
+      [0, -1], // Вверх
+      [1, -1] // Вправо-вверх
+    ];
+
+    do {
+      // Проверяем, не вышли ли за границы изображения
+      if (x >= 0 && x < width && y >= 0 && y < height && !visited[x][y]) {
+        visited[x][y] = true;
+        final int currentPixelOffset = (y * width + x) * 4;
+
+        // Проверяем, является ли пиксель граничным
+        if (uint8List[currentPixelOffset] == targetColor.red &&
+            uint8List[currentPixelOffset + 1] == targetColor.green &&
+            uint8List[currentPixelOffset + 2] == targetColor.blue &&
+            uint8List[currentPixelOffset + 3] == targetColor.alpha) {
+          boundaryPoints.add(currentPixelOffset);
+          direction = (direction + 1) % 8; // Поворачиваем по часовой стрелке
+          x += directions[direction][0];
+          y += directions[direction][1];
+        } else {
+          x -= directions[direction][0];
+          y -= directions[direction][1];
+          direction =
+              (direction + 7) % 8; // Поворачиваем против часовой стрелки
+          x += directions[direction][0];
+          y += directions[direction][1];
+        }
+      }
+    } while (!visited[x][y] &&
+        (x != targetPixelX || y != targetPixelY || boundaryPoints.length < 8));
+
+    for (final offset in boundaryPoints) {
+      uint8List[offset] = 0;
+      uint8List[offset + 1] = 255;
+      uint8List[offset + 2] = 0;
+      uint8List[offset + 3] = 255;
+    }
+
+    ui.decodeImageFromPixels(
+        uint8List, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
+        (image) {
+      emit(FindBoundaryState([], image));
+    });
+  }
 }

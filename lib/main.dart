@@ -77,43 +77,52 @@ class MyApp extends StatelessWidget {
                                 GestureEventType.panUpdate));
                           },
                           child: ClipRRect(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                if (state.canvasHistory == null) {
-                                  final history = List.filled(constraints.maxWidth.toInt() * constraints.maxHeight.toInt() * 4, 255);
-                                  ui.decodeImageFromPixels(
-                                    Uint8List.fromList(history), constraints.maxWidth.toInt(), constraints.maxHeight.toInt(), ui.PixelFormat.rgba8888,
-                                    (image) {
-                                      context.read<MainBloc>().add(MainCanvasHistoryUpdate(image));
-                                    }
-                                  );
-                                }
-                                return CustomPaint(
-                                  foregroundPainter: switch (state) {
-                                    BresenhamState() => BresenhamPainter(
-                                        gestureEvents: state.gestureEvents,
-                                        image: state.canvasHistory,
-                                        clearFlag: state.clearFlag),
-                                    WuState() => WuPainter(
-                                        gestureEvents: state.gestureEvents,
-                                        image: state.canvasHistory,
-                                        clearFlag: state.clearFlag),
-                                    FloodFillState() => FloodFillPainter(
-                                        gestureEvents: state.gestureEvents,
-                                        image: state.canvasHistory,
-                                        clearFlag: state.clearFlag),
-                                    ImageFillState() => FloodFillPainter(
-                                        gestureEvents: state.gestureEvents,
-                                        image: state.canvasHistory,
-                                        clearFlag: state.clearFlag
-                                    )
-                                  },
-                                  child: Container(
-                                    color: Colors.white,
-                                  ),
-                                );
+                            child:
+                                LayoutBuilder(builder: (context, constraints) {
+                              if (state.canvasHistory == null) {
+                                final history = List.filled(
+                                    constraints.maxWidth.toInt() *
+                                        constraints.maxHeight.toInt() *
+                                        4,
+                                    255);
+                                ui.decodeImageFromPixels(
+                                    Uint8List.fromList(history),
+                                    constraints.maxWidth.toInt(),
+                                    constraints.maxHeight.toInt(),
+                                    ui.PixelFormat.rgba8888, (image) {
+                                  context
+                                      .read<MainBloc>()
+                                      .add(MainCanvasHistoryUpdate(image));
+                                });
                               }
-                            ),
+                              return CustomPaint(
+                                foregroundPainter: switch (state) {
+                                  BresenhamState() => BresenhamPainter(
+                                      gestureEvents: state.gestureEvents,
+                                      image: state.canvasHistory,
+                                      clearFlag: state.clearFlag),
+                                  WuState() => WuPainter(
+                                      gestureEvents: state.gestureEvents,
+                                      image: state.canvasHistory,
+                                      clearFlag: state.clearFlag),
+                                  FloodFillState() => FloodFillPainter(
+                                      gestureEvents: state.gestureEvents,
+                                      image: state.canvasHistory,
+                                      clearFlag: state.clearFlag),
+                                  ImageFillState() => FloodFillPainter(
+                                      gestureEvents: state.gestureEvents,
+                                      image: state.canvasHistory,
+                                      clearFlag: state.clearFlag),
+                                  FindBoundaryState() => FloodFillPainter(
+                                      gestureEvents: state.gestureEvents,
+                                      image: state.canvasHistory,
+                                      clearFlag: state.clearFlag),
+                                },
+                                child: Container(
+                                  color: Colors.white,
+                                ),
+                              );
+                            }),
                           ),
                         );
                       },

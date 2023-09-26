@@ -39,3 +39,7 @@ class MainPickFloodFill extends MainEvent {
 class MainPickImageFill extends MainEvent {
   const MainPickImageFill();
 }
+
+class MainPickFindBoundary extends MainEvent {
+  const MainPickFindBoundary();
+}

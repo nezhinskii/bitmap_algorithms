@@ -44,21 +44,22 @@ class ToolBar extends StatelessWidget {
               height: 20,
             ),
             BlocBuilder<MainBloc, MainState>(
-              builder: (context, state) => switch(state){
+              builder: (context, state) => switch (state) {
                 ImageFillState() => Column(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<MainBloc>().add(const MainLoadFillImage());
-                      },
-                      child: Text("Загрузить изображение")
-                    ),
-                    Text(state.imageName ?? "Изображение не выбрано"),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                  ],
-                ),
+                    children: [
+                      ElevatedButton(
+                          onPressed: () {
+                            context
+                                .read<MainBloc>()
+                                .add(const MainLoadFillImage());
+                          },
+                          child: Text("Загрузить изображение")),
+                      Text(state.imageName ?? "Изображение не выбрано"),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    ],
+                  ),
                 _ => const SizedBox.shrink(),
               },
             ),
@@ -93,6 +94,15 @@ class ToolBar extends StatelessWidget {
                     },
                     title: "Заливка изображением",
                     isActive: state is ImageFillState,
+                  ),
+                  _PainterButton(
+                    onPressed: () {
+                      context
+                          .read<MainBloc>()
+                          .add(const MainPickFindBoundary());
+                    },
+                    title: "Обвести границу",
+                    isActive: state is FindBoundaryState,
                   ),
                 ],
               ),
@@ -174,4 +184,3 @@ class _WidthPickerState extends State<_WidthPicker> {
     );
   }
 }
-
