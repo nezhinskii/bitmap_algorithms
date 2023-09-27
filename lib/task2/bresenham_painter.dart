@@ -15,7 +15,7 @@ class BresenhamPainter extends CustomPainter with CanvasHistoryManager {
     this.image
   });
 
-  List<Offset> _bresenhamLine(Offset start, Offset end){
+  List<Offset> bresenhamLine(Offset start, Offset end){
     int xStart = start.dx.toInt(), yStart = start.dy.toInt(), xEnd = end.dx.toInt(), yEnd = end.dy.toInt();
     int dx = (xEnd - xStart).abs(), dy = (yEnd - yStart).abs();
     final res = <Offset>[];
@@ -65,7 +65,7 @@ class BresenhamPainter extends CustomPainter with CanvasHistoryManager {
   void paint(Canvas canvas, Size size) async {
     drawHistory(canvas, image, clearFlag);
     if (gestureEvents.length > 1 && gestureEvents.last.type == GestureEventType.panUpdate){
-      final points = _bresenhamLine(gestureEvents[gestureEvents.length - 2].position, gestureEvents.last.position);
+      final points = bresenhamLine(gestureEvents[gestureEvents.length - 2].position, gestureEvents.last.position);
       canvas.drawPoints(
         ui.PointMode.points,
         points,
