@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:bitmap_algorithms/canvas_history_manager.dart';
@@ -20,12 +21,8 @@ class BresenhamPainter extends CustomPainter with CanvasHistoryManager {
     int dx = (xEnd - xStart).abs(), dy = (yEnd - yStart).abs();
     final res = <Offset>[];
     if (dy/dx.toDouble() > 1){
-      if (yEnd < yStart){
-        (xEnd, xStart) = (xStart, xEnd);
-        (yEnd, yStart) = (yStart, yEnd);
-      }
       int d = 2 * dx - dy, xi = xStart;
-      for(int yi = yStart; yi <= yEnd; ++yi){
+      for(int yi = yStart; yStart < yEnd ? yi <= yEnd: yi >= yEnd; yi += yStart < yEnd ? 1:-1){
         res.add(Offset(xi.toDouble(), yi.toDouble()));
         if (d < 0) {
           d += 2 *dx;
@@ -39,12 +36,8 @@ class BresenhamPainter extends CustomPainter with CanvasHistoryManager {
         }
       }
     } else {
-      if (xEnd < xStart){
-        (xEnd, xStart) = (xStart, xEnd);
-        (yEnd, yStart) = (yStart, yEnd);
-      }
       int d = 2 * dy - dx, yi = yStart;
-      for(int xi = xStart; xi <= xEnd; ++xi){
+      for(int xi = xStart; xStart < xEnd ? xi <= xEnd: xi >= xEnd; xi += xStart < xEnd ? 1:-1){
         res.add(Offset(xi.toDouble(), yi.toDouble()));
         if (d < 0) {
           d += 2 *dy;
