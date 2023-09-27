@@ -98,3 +98,18 @@ class FindBoundaryState extends MainState {
         clearFlag ?? this.clearFlag);
   }
 }
+
+class CurveState extends MainState{
+  const CurveState(super.gestureEvents, super.canvasHistory, [super.clearFlag]);
+
+  @override
+  CurveState copyWith(
+      {List<GestureEvent>? gestureEvents,
+        ui.Image? canvasHistory,
+        bool? clearFlag}) {
+    return CurveState(
+        gestureEvents ?? this.gestureEvents,
+        clearFlag == true ? null : canvasHistory ?? this.canvasHistory,
+        clearFlag ?? this.clearFlag);
+  }
+}

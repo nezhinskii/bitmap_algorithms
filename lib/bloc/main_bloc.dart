@@ -23,6 +23,9 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     on<MainPickWu>((_, Emitter emit) {
       emit(WuState([], state.canvasHistory));
     });
+    on<MainPickCurve>((_, Emitter emit) {
+      emit(CurveState([], state.canvasHistory));
+    });
     on<MainPickFloodFill>((_, Emitter emit) {
       emit(FloodFillState([], state.canvasHistory));
     });
@@ -56,11 +59,16 @@ class MainBloc extends Bloc<MainEvent, MainState> {
         if (state is BresenhamState || state is WuState) {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
+        if (state is CurveState){
+          eventList.addAll(state.gestureEvents);
+          eventList.add(gestureEvent);
+        }
       case GestureEventType.panEnd:
         switch (state) {
           case BresenhamState() ||
             WuState() ||
-            FloodFillState():
+            FloodFillState() ||
+            CurveState():
             _updateCanvasHistory();
           default:
         }

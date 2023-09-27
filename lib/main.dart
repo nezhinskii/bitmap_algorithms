@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:bitmap_algorithms/bloc/main_bloc.dart';
 import 'package:bitmap_algorithms/gesture_event.dart';
+import 'package:bitmap_algorithms/task1/curve_painter.dart';
 import 'package:bitmap_algorithms/task2/bresenham_painter.dart';
 import 'package:bitmap_algorithms/task2/wu_painter.dart';
 import 'package:bitmap_algorithms/task1/flood_fill_painter.dart';
@@ -102,6 +103,10 @@ class MyApp extends StatelessWidget {
                                       gestureEvents: state.gestureEvents,
                                       image: state.canvasHistory,
                                       clearFlag: state.clearFlag),
+                                  CurveState() => CurvePainter(
+                                      gestureEvents: state.gestureEvents,
+                                      image: state.canvasHistory,
+                                      clearFlag: state.clearFlag)
                                 },
                                 child: Container(
                                   color: Colors.white,

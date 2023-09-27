@@ -83,6 +83,13 @@ class ToolBar extends StatelessWidget {
                   ),
                   _PainterButton(
                     onPressed: () {
+                      context.read<MainBloc>().add(const MainPickCurve());
+                    },
+                    title: "Кривая",
+                    isActive: state is CurveState,
+                  ),
+                  _PainterButton(
+                    onPressed: () {
                       context.read<MainBloc>().add(const MainPickFloodFill());
                     },
                     title: "Заливка цветом",

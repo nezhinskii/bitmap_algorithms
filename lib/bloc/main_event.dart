@@ -43,3 +43,7 @@ class MainPickImageFill extends MainEvent {
 class MainPickFindBoundary extends MainEvent {
   const MainPickFindBoundary();
 }
+
+class MainPickCurve extends MainEvent {
+  const MainPickCurve();
+}
