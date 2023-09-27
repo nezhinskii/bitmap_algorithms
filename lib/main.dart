@@ -15,19 +15,11 @@ void main() {
   runApp(const MyApp());
 }
 
-final _repaintBoundaryKey = GlobalKey();
+final repaintBoundaryKey = GlobalKey();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  void _updateCanvasHistory(MainBloc bloc) async {
-    final boundary = _repaintBoundaryKey.currentContext?.findRenderObject()
-        as RenderRepaintBoundary?;
-    final updatedHistory = await boundary?.toImage();
-    if (updatedHistory != null) {
-      bloc.add(MainCanvasHistoryUpdate(updatedHistory));
-    }
-  }
 
   // This widget is the root of your application.
   @override
@@ -47,7 +39,7 @@ class MyApp extends StatelessWidget {
                 const ToolBar(),
                 Expanded(
                   child: RepaintBoundary(
-                    key: _repaintBoundaryKey,
+                    key: repaintBoundaryKey,
                     child: BlocBuilder<MainBloc, MainState>(
                       builder: (context, state) {
                         return GestureDetector(
@@ -57,13 +49,6 @@ class MyApp extends StatelessWidget {
                                 GestureEventType.panDown));
                           },
                           onPanEnd: (details) {
-                            switch (state) {
-                              case BresenhamState() ||
-                                    WuState() ||
-                                    FloodFillState():
-                                _updateCanvasHistory(context.read<MainBloc>());
-                              default:
-                            }
                             context.read<MainBloc>().add(MainGestureUpdate(
                                   state.gestureEvents.isNotEmpty
                                       ? state.gestureEvents.last.position

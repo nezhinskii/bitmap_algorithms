@@ -2,9 +2,11 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 
 import 'package:bitmap_algorithms/gesture_event.dart';
+import 'package:bitmap_algorithms/main.dart';
 import 'package:bloc/bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 part 'main_event.dart';
 part 'main_state.dart';
@@ -35,6 +37,15 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     ..strokeWidth = 1
     ..color = Colors.black;
 
+
+  void _updateCanvasHistory() async {
+    final boundary = repaintBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    final updatedHistory = await boundary?.toImage();
+    if (updatedHistory != null) {
+      add(MainCanvasHistoryUpdate(updatedHistory));
+    }
+  }
+
   void _onGestureUpdate(MainGestureUpdate event, Emitter emit) async {
     final List<GestureEvent> eventList = [];
     final gestureEvent =
@@ -46,6 +57,13 @@ class MainBloc extends Bloc<MainEvent, MainState> {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
       case GestureEventType.panEnd:
+        switch (state) {
+          case BresenhamState() ||
+            WuState() ||
+            FloodFillState():
+            _updateCanvasHistory();
+          default:
+        }
         if (state is BresenhamState || state is WuState) {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
