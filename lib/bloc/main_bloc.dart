@@ -83,7 +83,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
         eventList.add(gestureEvent);
         if (state is CurveState){
           final curveState = state as CurveState;
-          emit(curveState.copyWith(path: Path(), gestureEvents: eventList));
+          emit(curveState.copyWith(path: Path()..moveTo(event.position.dx, event.position.dy), gestureEvents: eventList));
         }
         if (state is FloodFillState) {
           await _floodFill(state.canvasHistory!, gestureEvent);
