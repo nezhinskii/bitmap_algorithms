@@ -24,7 +24,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       emit(WuState([], state.canvasHistory));
     });
     on<MainPickCurve>((_, Emitter emit) {
-      emit(CurveState([], state.canvasHistory));
+      emit(CurveState(Path(), [], state.canvasHistory));
     });
     on<MainPickFloodFill>((_, Emitter emit) {
       emit(FloodFillState([], state.canvasHistory));
@@ -75,8 +75,16 @@ class MainBloc extends Bloc<MainEvent, MainState> {
         if (state is BresenhamState || state is WuState) {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
+        if (state is CurveState){
+          eventList.addAll(state.gestureEvents);
+          eventList.add(gestureEvent);
+        }
       case GestureEventType.panDown:
         eventList.add(gestureEvent);
+        if (state is CurveState){
+          final curveState = state as CurveState;
+          emit(curveState.copyWith(path: Path(), gestureEvents: eventList));
+        }
         if (state is FloodFillState) {
           await _floodFill(state.canvasHistory!, gestureEvent);
           return;
@@ -103,8 +111,11 @@ class MainBloc extends Bloc<MainEvent, MainState> {
   }
 
   void _clearHistory(MainClearEvent event, Emitter emit) {
-    emit(state.copyWith(
-        canvasHistory: null, gestureEvents: [], clearFlag: true));
+    if (state is CurveState){
+      final curveState = state as CurveState;
+      emit(curveState.copyWith(path: Path(), canvasHistory: null, gestureEvents: [], clearFlag: true));
+    }
+    emit(state.copyWith(canvasHistory: null, gestureEvents: [], clearFlag: true));
   }
 
   void _onLoadFillImage(MainLoadFillImage event, Emitter emit) async {
