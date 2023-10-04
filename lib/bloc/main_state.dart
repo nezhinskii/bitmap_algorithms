@@ -4,6 +4,7 @@ sealed class MainState {
   final List<GestureEvent> gestureEvents;
   final ui.Image? canvasHistory;
   final bool clearFlag;
+
   const MainState(this.gestureEvents, this.canvasHistory,
       [this.clearFlag = false]);
 
@@ -63,6 +64,7 @@ class FloodFillState extends MainState {
 class ImageFillState extends MainState {
   final ui.Image? fillImage;
   final String? imageName;
+
   const ImageFillState(
       this.imageName, this.fillImage, super.gestureEvents, super.canvasHistory,
       [super.clearFlag]);
@@ -111,5 +113,21 @@ class CurveState extends MainState{
         gestureEvents ?? this.gestureEvents,
         clearFlag == true ? null : canvasHistory ?? this.canvasHistory,
         clearFlag ?? this.clearFlag);
+  }
+}
+class TriangleState extends MainState {
+  const TriangleState(super.gestureEvents, super.canvasHistory,
+      [super.clearFlag]);
+
+  @override
+  TriangleState copyWith(
+      {List<GestureEvent>? gestureEvents,
+      ui.Image? canvasHistory,
+      bool? clearFlag}) {
+    return TriangleState(
+      gestureEvents ?? this.gestureEvents,
+      clearFlag == true ? null : canvasHistory ?? this.canvasHistory,
+      clearFlag ?? this.clearFlag,
+    );
   }
 }

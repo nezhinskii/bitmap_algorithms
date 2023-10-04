@@ -35,6 +35,9 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     on<MainPickFindBoundary>((_, Emitter emit) {
       emit(FindBoundaryState([], state.canvasHistory));
     });
+    on<MainPickTriangle>((_, Emitter emit) {
+      emit(TriangleState([], state.canvasHistory));
+    });
   }
   final Paint style = Paint()
     ..strokeWidth = 1
@@ -76,16 +79,18 @@ class MainBloc extends Bloc<MainEvent, MainState> {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
       case GestureEventType.panDown:
-        eventList.add(gestureEvent);
         if (state is FloodFillState) {
+          eventList.add(gestureEvent);
           await _floodFill(state.canvasHistory!, gestureEvent);
           return;
         }
         if (state is FindBoundaryState) {
+          eventList.add(gestureEvent);
           await _findBoundary(state.canvasHistory!, gestureEvent);
           return;
         }
         if (state is ImageFillState) {
+          eventList.add(gestureEvent);
           final imageFillState = (state as ImageFillState);
           if (imageFillState.fillImage == null) {
             return;
@@ -94,8 +99,23 @@ class MainBloc extends Bloc<MainEvent, MainState> {
               state.canvasHistory!, imageFillState.fillImage!, gestureEvent);
           return;
         }
+        if (state is TriangleState) {
+          eventList.addAll(state.gestureEvents);
+          eventList.add(gestureEvent);
+          emit(state.copyWith(gestureEvents: eventList));
+          print(state.gestureEvents.map((e) => e.style.color));
+          return;
+          /*if (state.gestureEvents.length == 3) {
+            state.gestureEvents.clear();
+          }*/
+        }
+        else {
+          eventList.add(gestureEvent);
+        }
     }
-    emit(state.copyWith(gestureEvents: eventList));
+    if (state is! TriangleState) {
+      emit(state.copyWith(gestureEvents: eventList));
+    }
   }
 
   void _onCanvasHistoryUpdate(MainCanvasHistoryUpdate event, Emitter emit) {
