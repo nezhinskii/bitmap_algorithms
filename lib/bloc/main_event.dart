@@ -47,3 +47,7 @@ class MainPickFindBoundary extends MainEvent {
 class MainPickCurve extends MainEvent {
   const MainPickCurve();
 }
+
+class MainPickTriangle extends MainEvent {
+  const MainPickTriangle();
+}

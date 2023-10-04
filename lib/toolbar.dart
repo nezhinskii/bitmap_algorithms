@@ -114,6 +114,13 @@ class ToolBar extends StatelessWidget {
                     title: "Обвести границу",
                     isActive: state is FindBoundaryState,
                   ),
+                  _PainterButton(
+                    onPressed: () {
+                      context.read<MainBloc>().add(const MainPickTriangle());
+                    },
+                    title: "Треугольник",
+                    isActive: state is TriangleState,
+                  ),
                 ],
               ),
             ),
