@@ -39,10 +39,11 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
         final double k = (points[2].pos.dx - points[0].pos.dx) /
             (points[2].pos.dy - points[0].pos.dy);
         final double dx = k * dy + points[0].pos.dx;
-        print("k*dy: ${k*dy}");
+        print("k*dy: ${k * dy}");
         var tempPoint = (
           pos: Offset(dx, points[1].pos.dy),
-          color: interpolateColor(dy/(points[2].pos.dy - points[0].pos.dy), points[0].color, points[2].color)
+          color: interpolateColor(dy / (points[2].pos.dy - points[0].pos.dy),
+              points[0].color, points[2].color)
         );
 
         if (points[1].pos.dx > tempPoint.pos.dx) {
@@ -51,14 +52,17 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
           points[1] = temp;
         }
         topTriangle = [points[0], points[1], tempPoint];
-        bottomTriangle = [tempPoint, points[1], points[2]];
+        bottomTriangle = [points[2], points[1], tempPoint];
       }
 
       if (topTriangle != null) {
         drawTriangle(canvas, topTriangle[0], topTriangle[1], topTriangle[2], 1);
       }
 
-      if (bottomTriangle != null) {}
+      if (bottomTriangle != null) {
+        drawTriangle(canvas, bottomTriangle[0], bottomTriangle[1],
+            bottomTriangle[2], -1);
+      }
     } else {
       for (var gesture in gestureEvents) {
         canvas.drawPoints(
@@ -85,18 +89,19 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
       var x2 = p2.pos.dx;
       var y1 = p1.pos.dy;
       var y2 = p2.pos.dy;
-      return x1 - (y-y1)*(x1-x2)/(y2-y1);
+      return x1 - (y - y1) * (x1 - x2) / (y2 - y1);
     }
+
     line2(double y) {
       var x1 = p1.pos.dx;
       var x2 = p3.pos.dx;
       var y1 = p1.pos.dy;
       var y2 = p3.pos.dy;
-      return (y-y1)*(x2-x1)/(y2-y1) + x1;
+      return (y - y1) * (x2 - x1) / (y2 - y1) + x1;
     }
 
     print("Color1  ${p1.color}  Color2 ${p2.color}  Color3 ${p3.color}");
-    for (double i = p1.pos.dy + 1; i <= p3.pos.dy; i += 1) {
+    for (double i = p1.pos.dy + 1; i*step <= p3.pos.dy*step; i += step) {
       //print(i);
       var xLeft = line1(i);
       var xRight = line2(i);
@@ -111,10 +116,11 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
           var color = interpolateColor(coef2, cLeft, cRight);
 
           canvas.drawPoints(
-              ui.PointMode.points, [Offset(j, i)], Paint()
-            ..color = color
-            ..strokeWidth = 1.0
-          );
+              ui.PointMode.points,
+              [Offset(j, i)],
+              Paint()
+                ..color = color
+                ..strokeWidth = 1.0);
         }
       }
     }
