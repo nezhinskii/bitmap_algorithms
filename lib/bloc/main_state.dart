@@ -102,14 +102,17 @@ class FindBoundaryState extends MainState {
 }
 
 class CurveState extends MainState{
-  const CurveState(super.gestureEvents, super.canvasHistory, [super.clearFlag]);
+  final Path path;
+  const CurveState(this.path, super.gestureEvents, super.canvasHistory, [super.clearFlag]);
 
   @override
   CurveState copyWith(
       {List<GestureEvent>? gestureEvents,
         ui.Image? canvasHistory,
-        bool? clearFlag}) {
+        bool? clearFlag,
+        Path? path}) {
     return CurveState(
+        path ?? this.path,
         gestureEvents ?? this.gestureEvents,
         clearFlag == true ? null : canvasHistory ?? this.canvasHistory,
         clearFlag ?? this.clearFlag);

@@ -106,6 +106,7 @@ class MyApp extends StatelessWidget {
                                       image: state.canvasHistory,
                                       clearFlag: state.clearFlag),
                                   CurveState() => CurvePainter(
+                                      path: state.path,
                                       gestureEvents: state.gestureEvents,
                                       image: state.canvasHistory,
                                       clearFlag: state.clearFlag),

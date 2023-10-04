@@ -24,7 +24,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       emit(WuState([], state.canvasHistory));
     });
     on<MainPickCurve>((_, Emitter emit) {
-      emit(CurveState([], state.canvasHistory));
+      emit(CurveState(Path(), [], state.canvasHistory));
     });
     on<MainPickFloodFill>((_, Emitter emit) {
       emit(FloodFillState([], state.canvasHistory));
@@ -43,9 +43,9 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     ..strokeWidth = 1
     ..color = Colors.black;
 
-
   void _updateCanvasHistory() async {
-    final boundary = repaintBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    final boundary = repaintBoundaryKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
     final updatedHistory = await boundary?.toImage();
     if (updatedHistory != null) {
       add(MainCanvasHistoryUpdate(updatedHistory));
@@ -62,23 +62,34 @@ class MainBloc extends Bloc<MainEvent, MainState> {
         if (state is BresenhamState || state is WuState) {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
-        if (state is CurveState){
+        if (state is CurveState) {
           eventList.addAll(state.gestureEvents);
           eventList.add(gestureEvent);
         }
       case GestureEventType.panEnd:
         switch (state) {
           case BresenhamState() ||
-            WuState() ||
-            FloodFillState() ||
-            CurveState():
+                WuState() ||
+                FloodFillState() ||
+                CurveState():
             _updateCanvasHistory();
           default:
         }
         if (state is BresenhamState || state is WuState) {
           eventList.addAll([state.gestureEvents.first, gestureEvent]);
         }
+        if (state is CurveState) {
+          eventList.addAll(state.gestureEvents);
+          eventList.add(gestureEvent);
+        }
       case GestureEventType.panDown:
+        if (state is CurveState) {
+          final curveState = state as CurveState;
+          emit(curveState.copyWith(
+              path: Path()..moveTo(event.position.dx, event.position.dy),
+              gestureEvents: eventList));
+          return;
+        }
         if (state is FloodFillState) {
           eventList.add(gestureEvent);
           await _floodFill(state.canvasHistory!, gestureEvent);
@@ -123,6 +134,14 @@ class MainBloc extends Bloc<MainEvent, MainState> {
   }
 
   void _clearHistory(MainClearEvent event, Emitter emit) {
+    if (state is CurveState) {
+      final curveState = state as CurveState;
+      emit(curveState.copyWith(
+          path: Path(),
+          canvasHistory: null,
+          gestureEvents: [],
+          clearFlag: true));
+    }
     emit(state.copyWith(
         canvasHistory: null, gestureEvents: [], clearFlag: true));
   }
@@ -147,7 +166,8 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     ByteData? byteData = await state.canvasHistory?.toByteData();
     if (byteData == null) return;
 
-    Uint8List uint8List = byteData.buffer.asUint8List();
+    Uint8List pixels = byteData.buffer.asUint8List();
+    Uint8List oldPixels = Uint8List.fromList(pixels);
 
     final int targetPixelX = gestureEvent.position.dx.toInt();
     final int targetPixelY = gestureEvent.position.dy.toInt();
@@ -155,10 +175,10 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     final int targetPixelOffset = (targetPixelY * width + targetPixelX) * 4;
 
     final Color targetColor = Color.fromRGBO(
-      uint8List[targetPixelOffset],
-      uint8List[targetPixelOffset + 1],
-      uint8List[targetPixelOffset + 2],
-      uint8List[targetPixelOffset + 3] / 255.0,
+      pixels[targetPixelOffset],
+      pixels[targetPixelOffset + 1],
+      pixels[targetPixelOffset + 2],
+      pixels[targetPixelOffset + 3] / 255.0,
     );
 
     final List<List<bool>> visited = List.generate(
@@ -180,33 +200,30 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
         final int currentPixelOffset = (y * width + x) * 4;
         final Color currentPixelColor = Color.fromRGBO(
-          uint8List[currentPixelOffset],
-          uint8List[currentPixelOffset + 1],
-          uint8List[currentPixelOffset + 2],
-          uint8List[currentPixelOffset + 3] / 255.0,
+          pixels[currentPixelOffset],
+          pixels[currentPixelOffset + 1],
+          pixels[currentPixelOffset + 2],
+          pixels[currentPixelOffset + 3] / 255.0,
         );
 
-        if (currentPixelColor == targetColor) {
+        double threshold = 1;
+        if (calculateColorMatchPercentage(
+                oldPixels, currentPixelOffset, targetPixelOffset) >=
+            threshold) {
           int left = x;
           int right = x;
 
           while (left >= 0 &&
-              Color.fromRGBO(
-                      uint8List[(y * width + left) * 4],
-                      uint8List[(y * width + left) * 4 + 1],
-                      uint8List[(y * width + left) * 4 + 2],
-                      uint8List[(y * width + left) * 4 + 3] / 255.0) ==
-                  targetColor) {
+              calculateColorMatchPercentage(
+                      oldPixels, (y * width + left) * 4, targetPixelOffset) >=
+                  threshold) {
             left--;
           }
 
           while (right < width &&
-              Color.fromRGBO(
-                      uint8List[(y * width + right) * 4],
-                      uint8List[(y * width + right) * 4 + 1],
-                      uint8List[(y * width + right) * 4 + 2],
-                      uint8List[(y * width + right) * 4 + 3] / 255.0) ==
-                  targetColor) {
+              calculateColorMatchPercentage(
+                      oldPixels, (y * width + right) * 4, targetPixelOffset) >=
+                  threshold) {
             right++;
           }
 
@@ -214,10 +231,10 @@ class MainBloc extends Bloc<MainEvent, MainState> {
             visited[i][y] = true;
             var color = gestureEvent.style.color;
             var offset = (y * width + i) * 4;
-            uint8List[offset] = color.red;
-            uint8List[offset + 1] = color.green;
-            uint8List[offset + 2] = color.blue;
-            uint8List[offset + 3] = color.alpha;
+            pixels[offset] = color.red;
+            pixels[offset + 1] = color.green;
+            pixels[offset + 2] = color.blue;
+            pixels[offset + 3] = color.alpha;
 
             if (y > 0) {
               stack.add([i, y - 1]);
@@ -230,7 +247,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       }
     }
     ui.decodeImageFromPixels(
-        uint8List, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
+        pixels, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
         (image) {
       emit(FloodFillState([], image));
     });
@@ -251,6 +268,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
     Uint8List maskPixels = maskByteData.buffer.asUint8List();
     Uint8List mainPixels = mainByteData.buffer.asUint8List();
+    Uint8List oldPixels = Uint8List.fromList(mainPixels);
 
     final int targetPixelX = gestureEvent.position.dx.toInt();
     final int targetPixelY = gestureEvent.position.dy.toInt();
@@ -292,28 +310,24 @@ class MainBloc extends Bloc<MainEvent, MainState> {
           mainPixels[currentPixelOffset + 2],
           mainPixels[currentPixelOffset + 3] / 255.0,
         );
-
-        if (currentPixelColor == targetColor) {
+        double threshold = 1;
+        if (calculateColorMatchPercentage(
+                oldPixels, currentPixelOffset, targetPixelOffset) >=
+            threshold) {
           int left = x;
           int right = x;
 
           while (left >= 0 &&
-              Color.fromRGBO(
-                      mainPixels[(y * mainWidth + left) * 4],
-                      mainPixels[(y * mainWidth + left) * 4 + 1],
-                      mainPixels[(y * mainWidth + left) * 4 + 2],
-                      mainPixels[(y * mainWidth + left) * 4 + 3] / 255.0) ==
-                  targetColor) {
+              calculateColorMatchPercentage(oldPixels,
+                      (y * mainWidth + left) * 4, targetPixelOffset) >=
+                  threshold) {
             left--;
           }
 
           while (right < mainWidth &&
-              Color.fromRGBO(
-                      mainPixels[(y * mainWidth + right) * 4],
-                      mainPixels[(y * mainWidth + right) * 4 + 1],
-                      mainPixels[(y * mainWidth + right) * 4 + 2],
-                      mainPixels[(y * mainWidth + right) * 4 + 3] / 255.0) ==
-                  targetColor) {
+              calculateColorMatchPercentage(oldPixels,
+                      (y * mainWidth + right) * 4, targetPixelOffset) >=
+                  threshold) {
             right++;
           }
 
@@ -349,14 +363,14 @@ class MainBloc extends Bloc<MainEvent, MainState> {
     });
   }
 
-  Future<void> _findBoundary(ui.Image image, GestureEvent gestureEvent) async {
+  Future<void> _findBoundary1(ui.Image image, GestureEvent gestureEvent) async {
     final int width = image.width;
     final int height = image.height;
 
     ByteData? byteData = await image.toByteData();
     if (byteData == null) return;
 
-    Uint8List uint8List = byteData.buffer.asUint8List();
+    Uint8List pixels = byteData.buffer.asUint8List();
 
     List<List<bool>> visited = List.generate(
       width,
@@ -365,21 +379,22 @@ class MainBloc extends Bloc<MainEvent, MainState> {
 
     List<int> boundaryPoints = [];
 
-    final int targetPixelX = gestureEvent.position.dx.toInt();
-    final int targetPixelY = gestureEvent.position.dy.toInt();
+    final int startPixelX = gestureEvent.position.dx.toInt();
+    final int startPixelY = gestureEvent.position.dy.toInt();
 
-    final int targetPixelOffset = (targetPixelY * width + targetPixelX) * 4;
+    final int startPixelOffset = (startPixelY * width + startPixelX) * 4;
 
-    final Color targetColor = Color.fromRGBO(
-      uint8List[targetPixelOffset],
-      uint8List[targetPixelOffset + 1],
-      uint8List[targetPixelOffset + 2],
-      uint8List[targetPixelOffset + 3] / 255.0,
-    );
-
-    int x = targetPixelX;
-    int y = targetPixelY;
-    int direction = 0; // Начинаем движение вправо
+    int x = startPixelX + 1;
+    int y = startPixelY;
+    int targetPixelOffset = startPixelOffset + 4;
+    while (x <= width &&
+        calculateColorMatchPercentage(
+                pixels, startPixelOffset, targetPixelOffset) >=
+            1) {
+      targetPixelOffset += 4;
+      x++;
+    }
+    if (x > width) return;
 
     final List<List<int>> directions = [
       [1, 0], // Вправо
@@ -392,43 +407,182 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       [1, -1] // Вправо-вверх
     ];
 
-    do {
-      // Проверяем, не вышли ли за границы изображения
-      if (x >= 0 && x < width && y >= 0 && y < height && !visited[x][y]) {
-        visited[x][y] = true;
-        final int currentPixelOffset = (y * width + x) * 4;
+    int direction = 2;
 
-        // Проверяем, является ли пиксель граничным
-        if (uint8List[currentPixelOffset] == targetColor.red &&
-            uint8List[currentPixelOffset + 1] == targetColor.green &&
-            uint8List[currentPixelOffset + 2] == targetColor.blue &&
-            uint8List[currentPixelOffset + 3] == targetColor.alpha) {
-          boundaryPoints.add(currentPixelOffset);
-          direction = (direction + 1) % 8; // Поворачиваем по часовой стрелке
-          x += directions[direction][0];
-          y += directions[direction][1];
-        } else {
-          x -= directions[direction][0];
-          y -= directions[direction][1];
-          direction =
-              (direction + 7) % 8; // Поворачиваем против часовой стрелки
-          x += directions[direction][0];
-          y += directions[direction][1];
+    void traverse(int x, int y) {
+      do {
+        if (x >= 0 && x < width && y >= 0 && y < height && !visited[x][y]) {
+          visited[x][y] = true;
+          final int currentPixelOffset = (y * width + x) * 4;
+
+          if (calculateColorMatchPercentage(
+                  pixels, currentPixelOffset, startPixelOffset) <
+              1) {
+            boundaryPoints.add(currentPixelOffset);
+            direction = (direction + 1) % 8;
+            x += directions[direction][0];
+            y += directions[direction][1];
+          } else {
+            x -= directions[direction][0];
+            y -= directions[direction][1];
+            direction = (direction + 7) % 8;
+            x += directions[direction][0];
+            y += directions[direction][1];
+          }
+        }
+      } while (!visited[x][y]);
+    }
+
+    traverse(x, y);
+
+    Map<int, List<int>> boundaryMap = {};
+    for (var el in boundaryPoints..sort()) {
+      var curX = el ~/ 4 % width;
+      var curY = el ~/ 4 ~/ width;
+      if (boundaryMap[curY] == null) boundaryMap[curY] = [];
+      boundaryMap[curY]!.add(curX);
+    }
+
+    print(boundaryMap);
+    for (var curY in boundaryMap.keys) {
+      boundaryMap[curY]!.sort();
+      print("\t$curY");
+      for (var i = 0; i < boundaryMap[curY]!.length; i += 2) {
+        var curX = boundaryMap[curY]![i];
+        print(curX);
+        var finX = boundaryMap[curY]![i + 1];
+        while (curX < finX &&
+            calculateColorMatchPercentage(
+                    pixels, (curY * width + curX) * 4, targetPixelOffset) >=
+                1) {
+          curX++;
+        }
+        if (curX != finX) {
+          print("!!!!!!!!!!");
+          traverse(curX, curY);
         }
       }
-    } while (!visited[x][y]);
+    }
 
+    var color = gestureEvent.style.color;
     for (final offset in boundaryPoints) {
-      uint8List[offset] = 0;
-      uint8List[offset + 1] = 255;
-      uint8List[offset + 2] = 0;
-      uint8List[offset + 3] = 255;
+      pixels[offset] = color.red;
+      pixels[offset + 1] = color.green;
+      pixels[offset + 2] = color.blue;
+      pixels[offset + 3] = color.alpha;
     }
 
     ui.decodeImageFromPixels(
-        uint8List, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
+        pixels, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
         (image) {
       emit(FindBoundaryState([], image));
     });
+  }
+
+  Future<void> _findBoundary(ui.Image image, GestureEvent gestureEvent) async {
+    final int width = image.width;
+    final int height = image.height;
+
+    ByteData? byteData = await state.canvasHistory?.toByteData();
+    if (byteData == null) return;
+
+    Uint8List pixels = byteData.buffer.asUint8List();
+    Uint8List oldPixels = Uint8List.fromList(pixels);
+
+    final int targetPixelX = gestureEvent.position.dx.toInt();
+    final int targetPixelY = gestureEvent.position.dy.toInt();
+
+    final int targetPixelOffset = (targetPixelY * width + targetPixelX) * 4;
+
+    final List<List<bool>> visited = List.generate(
+      width,
+      (i) => List<bool>.filled(height, false),
+    );
+
+    final List<List<int>> stack = [];
+
+    stack.add([targetPixelX, targetPixelY]);
+    var color = gestureEvent.style.color;
+    while (stack.isNotEmpty) {
+      final currentPoint = stack.removeLast();
+      final x = currentPoint[0];
+      final y = currentPoint[1];
+
+      if (x >= 0 && x < width && y >= 0 && y < height && !visited[x][y]) {
+        visited[x][y] = true;
+
+        final int currentPixelOffset = (y * width + x) * 4;
+
+        double threshold = 1;
+        if (calculateColorMatchPercentage(
+                oldPixels, currentPixelOffset, targetPixelOffset) >=
+            threshold) {
+          int left = x;
+          int right = x;
+
+          while (left >= 0 &&
+              calculateColorMatchPercentage(
+                      oldPixels, (y * width + left) * 4, targetPixelOffset) >=
+                  threshold) {
+            left--;
+          }
+
+          while (right < width &&
+              calculateColorMatchPercentage(
+                      oldPixels, (y * width + right) * 4, targetPixelOffset) >=
+                  threshold) {
+            right++;
+          }
+
+          var offset = (y * width + left) * 4;
+          pixels[offset] = color.red;
+          pixels[offset + 1] = color.green;
+          pixels[offset + 2] = color.blue;
+          pixels[offset + 3] = color.alpha;
+
+          offset = (y * width + right) * 4;
+          pixels[offset] = color.red;
+          pixels[offset + 1] = color.green;
+          pixels[offset + 2] = color.blue;
+          pixels[offset + 3] = color.alpha;
+
+          for (int i = left; i < right + 1; i++) {
+            visited[i][y] = true;
+            if (y > 0) {
+              stack.add([i, y - 1]);
+            }
+            if (y < height - 1) {
+              stack.add([i, y + 1]);
+            }
+          }
+        } else {
+          var offset = (y * width + x) * 4;
+          pixels[offset] = color.red;
+          pixels[offset + 1] = color.green;
+          pixels[offset + 2] = color.blue;
+          pixels[offset + 3] = color.alpha;
+        }
+      }
+    }
+    ui.decodeImageFromPixels(
+        pixels, width.toInt(), height.toInt(), ui.PixelFormat.rgba8888,
+        (image) {
+      emit(FindBoundaryState([], image));
+    });
+  }
+
+  double calculateColorMatchPercentage(
+      List<int> pixels, int pixelOffset1, int pixelOffset2) {
+    final int redDiff = (pixels[pixelOffset1] - pixels[pixelOffset2]).abs();
+    final int greenDiff =
+        (pixels[pixelOffset1 + 1] - pixels[pixelOffset2 + 1]).abs();
+    final int blueDiff =
+        (pixels[pixelOffset1 + 2] - pixels[pixelOffset2 + 2]).abs();
+    final int alphaDiff =
+        (pixels[pixelOffset1 + 3] - pixels[pixelOffset2 + 3]).abs();
+
+    final double matchPercentage =
+        1.0 - (redDiff + greenDiff + blueDiff + alphaDiff) / (255 * 4);
+    return matchPercentage;
   }
 }
