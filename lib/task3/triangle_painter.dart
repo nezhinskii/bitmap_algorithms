@@ -40,7 +40,10 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
             (points[2].pos.dy - points[0].pos.dy);
         final double dx = k * dy + points[0].pos.dx;
         print("k*dy: ${k*dy}");
-        var tempPoint = (pos: Offset(dx, points[1].pos.dy), color: points[0].color);
+        var tempPoint = (
+          pos: Offset(dx, points[1].pos.dy),
+          color: interpolateColor(dy/(points[2].pos.dy - points[0].pos.dy), points[0].color, points[2].color)
+        );
 
         if (points[1].pos.dx > tempPoint.pos.dx) {
           final temp = tempPoint;
@@ -92,6 +95,7 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
       return (y-y1)*(x2-x1)/(y2-y1) + x1;
     }
 
+    print("Color1  ${p1.color}  Color2 ${p2.color}  Color3 ${p3.color}");
     for (double i = p1.pos.dy + 1; i <= p3.pos.dy; i += 1) {
       //print(i);
       var xLeft = line1(i);
@@ -101,31 +105,26 @@ class TrianglePainter extends BresenhamPainter with CanvasHistoryManager {
         var coef = (i - p1.pos.dy) / (p3.pos.dy - p1.pos.dy);
         var cLeft = interpolateColor(coef, p1.color, p2.color);
         var cRight = interpolateColor(coef, p1.color, p3.color);
+        print("cLeft $cLeft  cRight $cRight");
         for (double j = xLeft; j <= xRight; j += 1) {
-          var coef2 = (i - xLeft) / (xRight - xLeft);
+          var coef2 = (j - xLeft) / (xRight - xLeft);
           var color = interpolateColor(coef2, cLeft, cRight);
 
           canvas.drawPoints(
               ui.PointMode.points, [Offset(j, i)], Paint()
             ..color = color
-            ..strokeWidth = 1.0);
+            ..strokeWidth = 1.0
+          );
         }
       }
     }
   }
 
   Color interpolateColor(double coef, Color color1, Color color2) {
-    int minR = min(color1.red, color2.red);
-    int maxR = max(color1.red, color2.red);
-    int minG = min(color1.green, color2.green);
-    int maxG = max(color1.green, color2.green);
-    int minB = min(color1.blue, color2.blue);
-    int maxB = max(color1.blue, color2.blue);
-
     return Color.fromRGBO(
-      (minR + coef * (maxR - minR)).round(),
-      (minG + coef * (maxG - minG)).round(),
-      (minB + coef * (maxB - minB)).round(),
+      (color1.red + coef * (color2.red - color1.red)).round(),
+      (color1.green + coef * (color2.green - color1.green)).round(),
+      (color1.blue + coef * (color2.blue - color1.blue)).round(),
       1,
     );
   }
