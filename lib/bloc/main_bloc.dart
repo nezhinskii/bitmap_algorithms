@@ -113,12 +113,14 @@ class MainBloc extends Bloc<MainEvent, MainState> {
         if (state is TriangleState) {
           eventList.addAll(state.gestureEvents);
           eventList.add(gestureEvent);
+          if (eventList.length == 4) {
+            _updateCanvasHistory();
+            eventList.removeRange(0, 3);
+          }
           emit(state.copyWith(gestureEvents: eventList));
           print(state.gestureEvents.map((e) => e.style.color));
+
           return;
-          /*if (state.gestureEvents.length == 3) {
-            state.gestureEvents.clear();
-          }*/
         }
         else {
           eventList.add(gestureEvent);
