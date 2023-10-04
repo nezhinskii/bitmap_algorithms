@@ -36,7 +36,10 @@ class ToolBar extends StatelessWidget {
               enableShadesSelection: false,
               onColorChanged: (_) {},
               onColorChangeEnd: (color) {
-                context.read<MainBloc>().style.color = color;
+                final currentStyle = context.read<MainBloc>().style;
+                context.read<MainBloc>().style = Paint()
+                  ..color = color
+                  ..strokeWidth = currentStyle.strokeWidth;
               },
             ),
             const _WidthPicker(),
@@ -120,9 +123,7 @@ class ToolBar extends StatelessWidget {
                   context.read<MainBloc>().add(const MainClearEvent());
                 },
                 child: const Text("Очистить")),
-            const SizedBox(
-              height: 20,
-            ),
+            const SizedBox(height: 20,),
           ],
         ),
       ),
@@ -182,7 +183,10 @@ class _WidthPickerState extends State<_WidthPicker> {
           max: 5,
           onChanged: (double value) {
             setState(() {
-              context.read<MainBloc>().style.strokeWidth = value;
+              final currentStyle = context.read<MainBloc>().style;
+              context.read<MainBloc>().style = Paint()
+                ..color = currentStyle.color
+                ..strokeWidth = value;
             });
           },
         ),

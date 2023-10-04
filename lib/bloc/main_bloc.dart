@@ -36,7 +36,7 @@ class MainBloc extends Bloc<MainEvent, MainState> {
       emit(FindBoundaryState([], state.canvasHistory));
     });
   }
-  final Paint style = Paint()
+  Paint style = Paint()
     ..strokeWidth = 1
     ..color = Colors.black;
 
